@@ -1,0 +1,67 @@
+{{
+import json
+import gluon.contrib.simplejson
+}}
+<html>
+
+<head>
+<title>Rent Index Calculator</title>
+<script src="http://ajax.googleapis.com/ajax/libs/jquery/2.0.0/jquery.min.js"></script> 
+<script src="{{=URL('static', 'js/flot/jquery.flot.min.js')}}"></script>
+
+<script type="text/javascript">
+
+function setup_graph(res) {
+  $.plot($("#placeholder"), [
+    {
+      data: res,
+    },
+  ], {
+    xaxis: {
+    mode: "time",
+    minTickSize: [1, "month"],
+//min: (new Date(1999, 1, 1)).getTime(),
+//max: (new Date(2000, 1, 1)).getTime()
+    }
+  });
+}
+
+function submitForm() {
+  var params = {}
+  {{
+    for filter_name in filters.iterkeys():
+      response.write('params.%s = $("select#%s").val();\n' % (filter_name, filter_name), escape=False)
+      pass
+  }}
+  $.ajax({  
+    type: "POST",
+    dataType: "json",
+    url: "{{=URL('compute_index.json')}}",  
+    data: {params: JSON.stringify(params)},
+  }).done(function(data, status, xhr) {  
+    setup_graph(data.indexes);
+  }).fail(function() {
+    alert("Unable to process request (your filter selection might be too fine, leading to no data");
+  });
+}
+
+//$(document).ready(setup_graph);
+
+</script>
+</head>
+
+<body>
+Welcome! Select your filters and hit "go"...
+<div id="filterPanel">
+  {{
+  for filter_name, filter_values in filters.iteritems():
+    =FIELDSET(TAG.legend(filter_name), SELECT([OPTION(filter_value, _value=json.dumps(filter_value)) for filter_value in filter_values], _id=filter_name, _name=filter_name, _multiple=True))
+    pass
+  =BUTTON("Go", _onclick="submitForm();")
+  }}
+</div>
+<div id="placeholder" style="width:600px;height:300px"></div>
+</body>
+
+
+</html>
